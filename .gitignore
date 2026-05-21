@@ -1,23 +1,858 @@
-### AL ###
-#Template for AL projects for Dynamics 365 Business Central
-#launch.json folder
-.vscode/
-#Cache folder
-.alcache/
-#Symbols folder
-.alpackages/
-#Snapshots folder
-.snapshots/
-#Testing Output folder
-.output/
-#Extension App-file
-*.app
-#Rapid Application Development File
-rad.json
-#Translation Base-file
-*.g.xlf
-#License-files
-*.bclicense
-*.flf
-#Test results file
-TestResults.xml
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║   FLUX HUB [BETA] - Universal Script Hub                     ║
+-- ║   Colores: Azul | Negro | Blanco                              ║
+-- ║   Features: Fly | Speed | Inf Jump | FullBright | TP Tool    ║
+-- ║             Telekinesis | Fling | ESP                          ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local Mouse = Players.LocalPlayer:GetMouse()
+
+local player = Players.LocalPlayer
+
+-- Eliminar GUI anterior
+if player.PlayerGui:FindFirstChild("FluxHub") then
+    player.PlayerGui:FindFirstChild("FluxHub"):Destroy()
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- VARIABLES GLOBALES
+-- ══════════════════════════════════════════════════════════════
+local features = {
+    fly = false,
+    infJump = false,
+    fullBright = false,
+    esp = false,
+    speed = 16,
+    defaultSpeed = 16,
+    telekinesis = false,
+    fling = false
+}
+
+local connections = {}
+local espObjects = {}
+local tkObject = nil
+local tkBeam = nil
+local flingTool = nil
+
+-- ══════════════════════════════════════════════════════════════
+-- CREAR GUI PRINCIPAL
+-- ══════════════════════════════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FluxHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = player.PlayerGui
+
+-- Frame principal (NEGRO)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local CornerMain = Instance.new("UICorner")
+CornerMain.CornerRadius = UDim.new(0, 14)
+CornerMain.Parent = MainFrame
+
+-- Barra superior (AZUL)
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 42)
+TopBar.BackgroundColor3 = Color3.fromRGB(30, 100, 220)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local CornerTop = Instance.new("UICorner")
+CornerTop.CornerRadius = UDim.new(0, 14)
+CornerTop.Parent = TopBar
+
+-- Título
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -90, 1, 0)
+Title.Position = UDim2.new(0, 14, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "⚡ Flux Hub [BETA]"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+-- Botón minimizar
+local MinBtn = Instance.new("TextButton")
+MinBtn.Name = "MinBtn"
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -68, 0, 6)
+MinBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Text = "−"
+MinBtn.TextColor3 = Color3.fromRGB(30, 100, 220)
+MinBtn.TextSize = 20
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Parent = TopBar
+
+local CornerMin = Instance.new("UICorner")
+CornerMin.CornerRadius = UDim.new(0, 8)
+CornerMin.Parent = MinBtn
+
+-- Botón cerrar
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -36, 0, 6)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = TopBar
+
+local CornerClose = Instance.new("UICorner")
+CornerClose.CornerRadius = UDim.new(0, 8)
+CornerClose.Parent = CloseBtn
+
+-- Contenedor de pestañas
+local TabContainer = Instance.new("Frame")
+TabContainer.Name = "TabContainer"
+TabContainer.Size = UDim2.new(0, 100, 1, -42)
+TabContainer.Position = UDim2.new(0, 0, 0, 42)
+TabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+TabContainer.BorderSizePixel = 0
+TabContainer.Parent = MainFrame
+
+local CornerTab = Instance.new("UICorner")
+CornerTab.CornerRadius = UDim.new(0, 0)
+CornerTab.Parent = TabContainer
+
+-- Contenido
+local ContentFrame = Instance.new("ScrollingFrame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, -100, 1, -52)
+ContentFrame.Position = UDim2.new(0, 100, 0, 47)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.BorderSizePixel = 0
+ContentFrame.ScrollBarThickness = 4
+ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(30, 100, 220)
+ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 600)
+ContentFrame.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 10)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Parent = ContentFrame
+
+local UIPadding = Instance.new("UIPadding")
+UIPadding.PaddingTop = UDim.new(0, 10)
+UIPadding.PaddingBottom = UDim.new(0, 10)
+UIPadding.Parent = ContentFrame
+
+-- ══════════════════════════════════════════════════════════════
+-- FUNCIONES AUXILIARES GUI
+-- ══════════════════════════════════════════════════════════════
+local function createToggle(name, description, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 280, 0, 55)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+    frame.BorderSizePixel = 0
+    frame.Parent = ContentFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 180, 0, 25)
+    label.Position = UDim2.new(0, 12, 0, 5)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 15
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local desc = Instance.new("TextLabel")
+    desc.Size = UDim2.new(0, 180, 0, 18)
+    desc.Position = UDim2.new(0, 12, 0, 30)
+    desc.BackgroundTransparency = 1
+    desc.Text = description
+    desc.TextColor3 = Color3.fromRGB(150, 150, 160)
+    desc.TextSize = 11
+    desc.Font = Enum.Font.Gotham
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.Parent = frame
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 50, 0, 26)
+    toggleBtn.Position = UDim2.new(1, -62, 0.5, -13)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    toggleBtn.Text = "OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.TextSize = 12
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.Parent = frame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 13)
+    toggleCorner.Parent = toggleBtn
+    
+    local enabled = false
+    toggleBtn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 100, 220)
+            toggleBtn.Text = "ON"
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            toggleBtn.Text = "OFF"
+        end
+        callback(enabled)
+    end)
+    
+    return frame, toggleBtn
+end
+
+local function createSlider(name, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 280, 0, 70)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+    frame.BorderSizePixel = 0
+    frame.Parent = ContentFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 200, 0, 22)
+    label.Position = UDim2.new(0, 12, 0, 5)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 15
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0, 50, 0, 22)
+    valueLabel.Position = UDim2.new(1, -62, 0, 5)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(default)
+    valueLabel.TextColor3 = Color3.fromRGB(30, 100, 220)
+    valueLabel.TextSize = 15
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.Parent = frame
+    
+    local sliderBg = Instance.new("Frame")
+    sliderBg.Size = UDim2.new(0, 256, 0, 8)
+    sliderBg.Position = UDim2.new(0, 12, 0, 40)
+    sliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    sliderBg.BorderSizePixel = 0
+    sliderBg.Parent = frame
+    
+    local sliderBgCorner = Instance.new("UICorner")
+    sliderBgCorner.CornerRadius = UDim.new(0, 4)
+    sliderBgCorner.Parent = sliderBg
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(30, 100, 220)
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = sliderBg
+    
+    local sliderFillCorner = Instance.new("UICorner")
+    sliderFillCorner.CornerRadius = UDim.new(0, 4)
+    sliderFillCorner.Parent = sliderFill
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel = 0
+    knob.Parent = sliderBg
+    
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
+    
+    local dragging = false
+    
+    local function updateSlider(input)
+        local pos = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (pos * (max - min)))
+        sliderFill.Size = UDim2.new(pos, 0, 1, 0)
+        knob.Position = UDim2.new(pos, -8, 0.5, -8)
+        valueLabel.Text = tostring(value)
+        callback(value)
+    end
+    
+    sliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateSlider(input)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    return frame
+end
+
+local function createButton(name, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 280, 0, 45)
+    btn.BackgroundColor3 = color or Color3.fromRGB(30, 100, 220)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 16
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = ContentFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+    
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 130, 255)}):Play()
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = color or Color3.fromRGB(30, 100, 220)}):Play()
+    end)
+    
+    return btn
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- TÍTULO DE SECCIÓN
+-- ══════════════════════════════════════════════════════════════
+local function createSectionTitle(text)
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0, 280, 0, 25)
+    title.BackgroundTransparency = 1
+    title.Text = text
+    title.TextColor3 = Color3.fromRGB(30, 100, 220)
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = ContentFrame
+    return title
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- FEATURES - FLY
+-- ══════════════════════════════════════════════════════════════
+createSectionTitle("✈️ MOVIMIENTO")
+
+-- Speed Slider
+createSlider("⚡ Speed del Personaje", 1, 200, 16, function(value)
+    features.speed = value
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = value
+        end
+    end
+end)
+
+-- Fly Toggle
+createToggle("🚀 Fly", "Vuela libremente", function(enabled)
+    features.fly = enabled
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    if enabled then
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Name = "FluxFlyVel"
+        bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVel.Velocity = Vector3.new(0, 0, 0)
+        bodyVel.Parent = root
+        
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.Name = "FluxFlyGyro"
+        bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodyGyro.P = 10000
+        bodyGyro.Parent = root
+        
+        connections.fly = RunService.RenderStepped:Connect(function()
+            if not features.fly then return end
+            local cam = workspace.CurrentCamera
+            local moveDir = Vector3.new(0, 0, 0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+            
+            if moveDir.Magnitude > 0 then
+                moveDir = moveDir.Unit * 50
+            end
+            
+            local vel = root:FindFirstChild("FluxFlyVel")
+            local gyro = root:FindFirstChild("FluxFlyGyro")
+            if vel then vel.Velocity = moveDir end
+            if gyro then gyro.CFrame = cam.CFrame end
+        end)
+    else
+        if connections.fly then connections.fly:Disconnect() connections.fly = nil end
+        local vel = root:FindFirstChild("FluxFlyVel")
+        local gyro = root:FindFirstChild("FluxFlyGyro")
+        if vel then vel:Destroy() end
+        if gyro then gyro:Destroy() end
+    end
+end)
+
+-- Inf Jump Toggle
+createToggle("🦘 Inf Jump", "Salta infinitamente", function(enabled)
+    features.infJump = enabled
+    if enabled then
+        connections.infJump = UserInputService.JumpRequest:Connect(function()
+            local char = player.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+        end)
+    else
+        if connections.infJump then connections.infJump:Disconnect() connections.infJump = nil end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- FEATURES - VISUALES
+-- ══════════════════════════════════════════════════════════════
+createSectionTitle("👁️ VISUALES")
+
+-- FullBright Toggle
+createToggle("☀️ FullBright", "Máxima iluminación", function(enabled)
+    features.fullBright = enabled
+    if enabled then
+        Lighting.Brightness = 10
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        connections.fullBright = Lighting.Changed:Connect(function()
+            Lighting.Brightness = 10
+            Lighting.GlobalShadows = false
+        end)
+    else
+        if connections.fullBright then connections.fullBright:Disconnect() connections.fullBright = nil end
+        Lighting.Brightness = 2
+        Lighting.GlobalShadows = true
+        Lighting.Ambient = Color3.fromRGB(127, 127, 127)
+        Lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+    end
+end)
+
+-- ESP Toggle
+createToggle("🔍 ESP Players", "Ver jugadores a través de paredes", function(enabled)
+    features.esp = enabled
+    if enabled then
+        local function createESP(target)
+            if target == player then return end
+            local char = target.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "FluxESP"
+            billboard.Size = UDim2.new(0, 100, 0, 40)
+            billboard.AlwaysOnTop = true
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.Parent = hrp
+            
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundColor3 = Color3.fromRGB(30, 100, 220)
+            frame.BackgroundTransparency = 0.3
+            frame.BorderSizePixel = 0
+            frame.Parent = billboard
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 6)
+            corner.Parent = frame
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = target.Name
+            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLabel.TextSize = 12
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.Parent = frame
+            
+            local distLabel = Instance.new("TextLabel")
+            distLabel.Size = UDim2.new(1, 0, 0.5, 0)
+            distLabel.Position = UDim2.new(0, 0, 0.5, 0)
+            distLabel.BackgroundTransparency = 1
+            distLabel.Text = "..."
+            distLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            distLabel.TextSize = 10
+            distLabel.Font = Enum.Font.Gotham
+            distLabel.Parent = frame
+            
+            espObjects[target] = billboard
+            
+            -- Actualizar distancia
+            task.spawn(function()
+                while espObjects[target] and espObjects[target].Parent do
+                    local myChar = player.Character
+                    local theirChar = target.Character
+                    if myChar and theirChar then
+                        local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+                        local theirHrp = theirChar:FindFirstChild("HumanoidRootPart")
+                        if myHrp and theirHrp then
+                            local dist = math.floor((myHrp.Position - theirHrp.Position).Magnitude)
+                            distLabel.Text = dist .. " studs"
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        end
+        
+        for _, p in ipairs(Players:GetPlayers()) do
+            createESP(p)
+        end
+        
+        connections.espAdded = Players.PlayerAdded:Connect(createESP)
+        connections.espRemoving = Players.PlayerRemoving:Connect(function(p)
+            if espObjects[p] then
+                espObjects[p]:Destroy()
+                espObjects[p] = nil
+            end
+        end)
+    else
+        if connections.espAdded then connections.espAdded:Disconnect() connections.espAdded = nil end
+        if connections.espRemoving then connections.espRemoving:Disconnect() connections.espRemoving = nil end
+        for _, obj in pairs(espObjects) do
+            if obj then obj:Destroy() end
+        end
+        espObjects = {}
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- FEATURES - HERRAMIENTAS
+-- ══════════════════════════════════════════════════════════════
+createSectionTitle("🛠️ HERRAMIENTAS")
+
+-- TP Tool Button
+createButton("🎯 TP Tool", Color3.fromRGB(30, 100, 220), function()
+    local backpack = player:WaitForChild("Backpack")
+    local existing = backpack:FindFirstChild("FluxTPTool") or player.Character:FindFirstChild("FluxTPTool")
+    if existing then existing:Destroy() end
+    
+    local tool = Instance.new("Tool")
+    tool.Name = "FluxTPTool"
+    tool.RequiresHandle = false
+    tool.CanBeDropped = false
+    tool.ToolTip = "Click para teletransportarte"
+    
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(1, 1, 1)
+    handle.Transparency = 1
+    handle.CanCollide = false
+    handle.Parent = tool
+    
+    tool.Activated:Connect(function()
+        local targetPos = Mouse.Hit.Position
+        local char = player.Character
+        if char then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then
+                -- Efecto origen
+                local origin = Instance.new("Part")
+                origin.Size = Vector3.new(2, 4, 2)
+                origin.CFrame = root.CFrame
+                origin.Anchored = true
+                origin.CanCollide = false
+                origin.Transparency = 0.6
+                origin.Material = Enum.Material.Neon
+                origin.Color = Color3.fromRGB(30, 100, 220)
+                origin.Parent = workspace
+                game:GetService("Debris"):AddItem(origin, 0.4)
+                
+                root.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+                
+                -- Efecto destino
+                local dest = Instance.new("Part")
+                dest.Size = Vector3.new(2, 4, 2)
+                dest.CFrame = root.CFrame
+                dest.Anchored = true
+                dest.CanCollide = false
+                dest.Transparency = 0.6
+                dest.Material = Enum.Material.Neon
+                dest.Color = Color3.fromRGB(255, 255, 255)
+                dest.Parent = workspace
+                game:GetService("Debris"):AddItem(dest, 0.4)
+            end
+        end
+    end)
+    
+    tool.Parent = backpack
+    
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum:EquipTool(tool) end
+    end
+    
+    print("✅ Flux TP Tool equipado!")
+end)
+
+-- Telekinesis Button
+createButton("🧠 Telekinesis", Color3.fromRGB(100, 30, 200), function()
+    features.telekinesis = not features.telekinesis
+    
+    if features.telekinesis then
+        print("🧠 Telekinesis activado! Click en objetos para moverlos")
+        
+        local tool = Instance.new("Tool")
+        tool.Name = "FluxTelekinesis"
+        tool.RequiresHandle = false
+        tool.Parent = player.Backpack
+        
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum:EquipTool(tool) end
+        end
+        
+        tkObject = nil
+        tkBeam = nil
+        
+        tool.Activated:Connect(function()
+            if tkObject then
+                -- Soltar objeto
+                if tkBeam then tkBeam:Destroy() tkBeam = nil end
+                if tkObject then
+                    tkObject.Anchored = false
+                    tkObject.CanCollide = true
+                    tkObject.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                end
+                tkObject = nil
+                print("🧠 Objeto soltado")
+                return
+            end
+            
+            local target = Mouse.Target
+            if target and target:IsA("BasePart") and not target:IsDescendantOf(player.Character) then
+                tkObject = target
+                tkObject.Anchored = true
+                tkObject.CanCollide = false
+                
+                -- Beam visual
+                local char = player.Character
+                if char then
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local attachment0 = Instance.new("Attachment")
+                        attachment0.Parent = hrp
+                        
+                        local attachment1 = Instance.new("Attachment")
+                        attachment1.Parent = tkObject
+                        
+                        tkBeam = Instance.new("Beam")
+                        tkBeam.Color = ColorSequence.new(Color3.fromRGB(100, 30, 200))
+                        tkBeam.Width0 = 0.5
+                        tkBeam.Width1 = 0.5
+                        tkBeam.Attachment0 = attachment0
+                        tkBeam.Attachment1 = attachment1
+                        tkBeam.Parent = hrp
+                    end
+                end
+                
+                print("🧠 Objeto agarrado: " .. target.Name)
+            end
+        end)
+        
+        connections.telekinesis = RunService.RenderStepped:Connect(function()
+            if tkObject and tkBeam then
+                local char = player.Character
+                if char then
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local targetPos = Mouse.Hit.Position
+                        tkObject.Position = tkObject.Position:Lerp(targetPos, 0.1)
+                        tkObject.CFrame = CFrame.new(tkObject.Position, hrp.Position)
+                    end
+                end
+            end
+        end)
+    else
+        if connections.telekinesis then connections.telekinesis:Disconnect() connections.telekinesis = nil end
+        if tkBeam then tkBeam:Destroy() tkBeam = nil end
+        if tkObject then
+            tkObject.Anchored = false
+            tkObject.CanCollide = true
+            tkObject = nil
+        end
+        local tool = player.Backpack:FindFirstChild("FluxTelekinesis") or player.Character:FindFirstChild("FluxTelekinesis")
+        if tool then tool:Destroy() end
+        print("🧠 Telekinesis desactivado")
+    end
+end)
+
+-- Fling Button
+createButton("💥 Fling Tool", Color3.fromRGB(220, 40, 40), function()
+    local backpack = player:WaitForChild("Backpack")
+    local existing = backpack:FindFirstChild("FluxFling") or player.Character:FindFirstChild("FluxFling")
+    if existing then existing:Destroy() end
+    
+    local tool = Instance.new("Tool")
+    tool.Name = "FluxFling"
+    tool.RequiresHandle = false
+    tool.CanBeDropped = false
+    tool.ToolTip = "Click en jugador para flingearlo"
+    
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(1, 1, 1)
+    handle.Transparency = 1
+    handle.CanCollide = false
+    handle.Parent = tool
+    
+    tool.Activated:Connect(function()
+        local target = Mouse.Target
+        if target then
+            local model = target:FindFirstAncestorOfClass("Model")
+            if model then
+                local targetPlayer = Players:GetPlayerFromCharacter(model)
+                if targetPlayer and targetPlayer ~= player then
+                    local hrp = model:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        -- Fling effect
+                        local bodyVel = Instance.new("BodyVelocity")
+                        bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                        bodyVel.Velocity = (hrp.Position - player.Character.HumanoidRootPart.Position).Unit * 500 + Vector3.new(0, 300, 0)
+                        bodyVel.Parent = hrp
+                        
+                        game:GetService("Debris"):AddItem(bodyVel, 0.5)
+                        
+                        -- Visual effect
+                        local effect = Instance.new("Part")
+                        effect.Size = Vector3.new(4, 4, 4)
+                        effect.CFrame = hrp.CFrame
+                        effect.Anchored = true
+                        effect.CanCollide = false
+                        effect.Transparency = 0.5
+                        effect.Material = Enum.Material.Neon
+                        effect.Color = Color3.fromRGB(220, 40, 40)
+                        effect.Parent = workspace
+                        game:GetService("Debris"):AddItem(effect, 0.5)
+                        
+                        print("💥 Flingeado a: " .. targetPlayer.Name)
+                    end
+                end
+            end
+        end
+    end)
+    
+    tool.Parent = backpack
+    
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum:EquipTool(tool) end
+    end
+    
+    print("💥 Flux Fling Tool equipado! Click en jugadores para flingearlos")
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- BOTÓN RESET
+-- ══════════════════════════════════════════════════════════════
+createSectionTitle("🔄 UTILIDADES")
+
+createButton("🔄 Reset Speed", Color3.fromRGB(50, 50, 60), function()
+    features.speed = 16
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 16 end
+    end
+    print("🔄 Speed reseteada a 16")
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- EVENTOS DEL HUB
+-- ══════════════════════════════════════════════════════════════
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 320, 0, 42)}):Play()
+        MinBtn.Text = "+"
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 320, 0, 450)}):Play()
+        MinBtn.Text = "−"
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    -- Desactivar todo
+    for name, conn in pairs(connections) do
+        if conn then conn:Disconnect() end
+    end
+    for _, obj in pairs(espObjects) do
+        if obj then obj:Destroy() end
+    end
+    espObjects = {}
+    ScreenGui:Destroy()
+    print("❌ Flux Hub cerrado")
+end)
+
+-- Auto-reconectar al respawn
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = features.speed
+        end
+    end
+end)
+
+-- Animación de entrada
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 320, 0, 450)
+}):Play()
+
+print("✅ Flux Hub [BETA] cargado!")
+print("Features: Fly | Speed | Inf Jump | FullBright | ESP | TP Tool | Telekinesis | Fling")
